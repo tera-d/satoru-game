@@ -2,7 +2,8 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>さとるゲーム</title> <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+  <title>さとるゲーム</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/addons/p5.sound.min.js"></script>
   <style>
     body { margin: 0; padding: 0; overflow: hidden; background: #f0f0f0; }
@@ -14,7 +15,10 @@
   let targets = []; 
   let score = 0;
   let highScore = 0; 
-  let spawnRate = 60; 
+  
+  // ★変更点1：出現頻度（小さいほどたくさん出る）
+  // 60だと1秒に1回、20だと1秒に3回くらい出ます
+  let spawnRate = 20; 
   
   let gameTime = 30; 
   let timeLeft;      
@@ -27,7 +31,6 @@
   let finishSound;
   let targetImg; 
 
-  // ボタンのサイズ設定
   let btnW = 240;
   let btnH = 70;
 
@@ -35,7 +38,6 @@
     soundFormats('mp3', 'ogg');
     hitSound = loadSound('hit.mp3');
     finishSound = loadSound('finish.mp3');
-    // 画像ファイル名は変更なし（kawamura.pngのまま）
     targetImg = loadImage('kawamura.png'); 
   }
 
@@ -64,11 +66,9 @@
     }
   }
 
-  // --- スタート画面 ---
   function drawStartScreen() {
     fill(0);
     textSize(48);
-    // ★ここを変更しました
     text("さとるゲーム", width / 2, height / 2 - 80);
     
     textSize(20);
@@ -79,7 +79,6 @@
     drawButton("GAME START", btnX, btnY, btnW, btnH);
   }
 
-  // --- ゲームオーバー画面 ---
   function drawGameOver() {
     if (isNewRecord) {
       fill(255, 200, 0); 
@@ -104,7 +103,6 @@
     drawButton("RETRY", btnX, btnY, btnW, btnH);
   }
 
-  // --- ボタン描画関数 ---
   function drawButton(label, x, y, w, h) {
     fill(180); 
     noStroke();
@@ -214,7 +212,11 @@
       this.r = 40; 
       this.x = random(this.r, width - this.r);
       this.y = -50;
-      this.speed = random(2, 5); 
+      
+      // ★変更点2：落下のスピード
+      // 数値が大きいほど速くなります（以前は 2, 5 でした）
+      this.speed = random(6, 12); 
+      
       this.isHit = false; 
       this.life = 30; 
     }
