@@ -3,10 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <title>さとるゲーム</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/addons/p5.sound.min.js"></script>
   <style>
-    body { margin: 0; padding: 0; overflow: hidden; background: #f0f0f0; }
+    /* ★変更点2：touch-action: none でスクロールや長押しメニューを禁止 */
+    body { 
+      margin: 0; 
+      padding: 0; 
+      overflow: hidden; 
+      background: #f0f0f0; 
+      touch-action: none; 
+      user-select: none; /* 文字選択も防ぐ */
+      -webkit-user-select: none;
+    }
     canvas { display: block; }
   </style>
 </head>
@@ -16,8 +27,8 @@
   let score = 0;
   let highScore = 0; 
   
-  // ★変更点1：出現頻度（小さいほどたくさん出る）
-  // 60だと1秒に1回、20だと1秒に3回くらい出ます
+  // スマホだと少し難しすぎるかもしれないので、
+  // PCより少しだけ優しくするか、そのままにするかはお好みで！
   let spawnRate = 20; 
   
   let gameTime = 30; 
@@ -54,6 +65,11 @@
     if(finishSound) finishSound.setVolume(0.5);
   }
 
+  // ★変更点3：スマホを回転させた時に画面サイズを直す
+  function windowResized() {
+    resizeCanvas(windowWidth, windowHeight);
+  }
+
   function draw() {
     background(240); 
 
@@ -68,7 +84,8 @@
 
   function drawStartScreen() {
     fill(0);
-    textSize(48);
+    // スマホだと文字が大きすぎることがあるので、少し調整
+    textSize(min(48, width / 8)); 
     text("さとるゲーム", width / 2, height / 2 - 80);
     
     textSize(20);
@@ -82,7 +99,7 @@
   function drawGameOver() {
     if (isNewRecord) {
       fill(255, 200, 0); 
-      textSize(40);
+      textSize(min(40, width / 10));
       text("✨ NEW RECORD! ✨", width / 2, height / 2 - 120);
     } else {
       fill(0); 
@@ -178,7 +195,14 @@
   }
 
   function mousePressed() {
+    // タッチした瞬間もmousePressedとして判定されます
     userStartAudio();
+
+    // ★スマホでの誤操作を防ぐため、クリック位置を厳密にチェック
+    // タッチ座標がちゃんと画面内にあるか？
+    if (mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height) {
+        return;
+    }
 
     let w = btnW;
     let h = btnH;
@@ -205,6 +229,9 @@
         k.checkHit(mouseX, mouseY);
       }
     }
+    
+    // ブラウザ標準のタッチ動作（拡大など）を無効化
+    return false;
   }
 
   class Target {
@@ -212,11 +239,7 @@
       this.r = 40; 
       this.x = random(this.r, width - this.r);
       this.y = -50;
-      
-      // ★変更点2：落下のスピード
-      // 数値が大きいほど速くなります（以前は 2, 5 でした）
       this.speed = random(6, 12); 
-      
       this.isHit = false; 
       this.life = 30; 
     }
