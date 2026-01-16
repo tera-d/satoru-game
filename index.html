@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>さとる落下ゲーム</title>
+  <title>さとる落下ゲーム（スタート画面付き）</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/addons/p5.sound.min.js"></script>
   <style>
@@ -12,7 +12,6 @@
 </head>
 <body>
 <script>
-  // 変数名もわかりやすくkawamurasからtargetsに変更します
   let targets = []; 
   let score = 0;
   let highScore = 0; 
@@ -20,21 +19,21 @@
   
   let gameTime = 30; 
   let timeLeft;      
-  let isGameOver = false; 
+  
+  // ★状態管理用の変数を整理
+  let isGameStarted = false; // ゲームが始まっているか？
+  let isGameOver = false;    // ゲームが終わったか？
   let isNewRecord = false; 
 
   // 素材用変数
   let hitSound;
   let finishSound;
-  let targetImg; // 画像用の変数
+  let targetImg; 
 
-  // 素材をあらかじめ読み込む関数
   function preload() {
     soundFormats('mp3', 'ogg');
     hitSound = loadSound('hit.mp3');
     finishSound = loadSound('finish.mp3');
-    
-    // 画像を読み込みます（ファイル名はkawamura.pngのままとしています）
     targetImg = loadImage('kawamura.png'); 
   }
 
@@ -42,7 +41,6 @@
     createCanvas(windowWidth, windowHeight);
     textAlign(CENTER, CENTER);
     
-    // ハイスコアの保存名も変更します
     let savedScore = localStorage.getItem("satoruGameHighScore");
     if (savedScore !== null) {
       highScore = parseInt(savedScore); 
@@ -51,17 +49,53 @@
     if(hitSound) hitSound.setVolume(0.5);
     if(finishSound) finishSound.setVolume(0.5);
 
-    resetGame(); 
+    // resetGameはまだ呼ばない（スタートボタンを押した時に呼ぶ）
   }
 
   function draw() {
     background(240); 
 
-    if (!isGameOver) {
+    // ★画面の状態によって描画を切り替える
+    if (!isGameStarted) {
+      // 1. まだ始まっていないなら「スタート画面」
+      drawStartScreen();
+    } else if (!isGameOver) {
+      // 2. 始まっていて、終わっていないなら「ゲームプレイ画面」
       playGame();
     } else {
+      // 3. 終わっているなら「結果画面」
       drawGameOver();
     }
+  }
+
+  // --- ★新しく追加：スタート画面を描く関数 ---
+  function drawStartScreen() {
+    // タイトル
+    fill(0);
+    textSize(48);
+    text("さとる落下ゲーム", width / 2, height / 2 - 80);
+    
+    textSize(20);
+    text("High Score: " + highScore, width / 2, height / 2 - 20);
+
+    // スタートボタン
+    let btnW = 240;
+    let btnH = 80;
+    let btnX = width / 2 - btnW / 2;
+    let btnY = height / 2 + 50;
+
+    // ボタンの影（立体感）
+    fill(100);
+    rect(btnX + 5, btnY + 5, btnW, btnH, 20);
+
+    // ボタン本体（青色）
+    fill(0, 100, 255);
+    rect(btnX, btnY, btnW, btnH, 20);
+
+    // 文字
+    fill(255);
+    textSize(32);
+    text("GAME START", width / 2, btnY + btnH / 2);
   }
 
   function playGame() {
@@ -73,6 +107,7 @@
       gameOverProcess(); 
     }
 
+    // スコアなどの表示
     fill(0);
     textAlign(LEFT, TOP);
     textSize(32);
@@ -107,15 +142,11 @@
 
   function gameOverProcess() {
     isGameOver = true;
-    
-    if (finishSound && finishSound.isLoaded()) {
-      finishSound.play();
-    }
+    if (finishSound && finishSound.isLoaded()) finishSound.play();
 
     if (score > highScore) {
       highScore = score;
       isNewRecord = true;
-      // 保存名を変更
       localStorage.setItem("satoruGameHighScore", highScore);
     }
   }
@@ -123,7 +154,6 @@
   function drawGameOver() {
     fill(0, 180); 
     rect(0, 0, width, height);
-
     textAlign(CENTER, CENTER);
     
     if (isNewRecord) {
@@ -165,13 +195,29 @@
     isGameOver = false;
     isNewRecord = false; 
     frameCount = 0; 
-    userStartAudio();
   }
 
+  // --- タッチ・クリック時の処理 ---
   function mousePressed() {
+    // どの画面でも、クリックされたら音を許可する（スマホ対策）
     userStartAudio();
 
-    if (isGameOver) {
+    if (!isGameStarted) {
+      // 1. スタート画面でのクリック判定
+      let btnW = 240;
+      let btnH = 80;
+      let btnX = width / 2 - btnW / 2;
+      let btnY = height / 2 + 50;
+
+      if (mouseX > btnX && mouseX < btnX + btnW &&
+          mouseY > btnY && mouseY < btnY + btnH) {
+        // スタートボタンが押された！
+        isGameStarted = true;
+        resetGame(); // ゲーム開始
+      }
+
+    } else if (isGameOver) {
+      // 3. ゲームオーバー画面でのリトライ判定
       let btnW = 200;
       let btnH = 60;
       let btnX = width / 2 - btnW / 2;
@@ -179,19 +225,21 @@
 
       if (mouseX > btnX && mouseX < btnX + btnW &&
           mouseY > btnY && mouseY < btnY + btnH) {
+        // リトライボタンが押された！
         resetGame();
       }
+
     } else {
+      // 2. ゲーム中のタッチ判定
       for (let k of targets) {
         k.checkHit(mouseX, mouseY);
       }
     }
   }
 
-  // --- クラス定義（名前をKawamuraからTargetに変更）---
   class Target {
     constructor() {
-      this.r = 40; // 半径
+      this.r = 40; 
       this.x = random(this.r, width - this.r);
       this.y = -50;
       this.speed = random(2, 5); 
@@ -214,15 +262,12 @@
         textSize(this.r * 2);
         text("❤️", this.x, this.y);
       } else {
-        // 画像の表示
         imageMode(CENTER);
         image(targetImg, this.x, this.y, this.r * 2, this.r * 2);
 
-        // ★ここを変更しました：「さとる」の名前を表示
-        fill(0);       // 文字色を黒に
-        noStroke();    // 縁取りなし
-        textSize(16);  // 文字の大きさ
-        // 画像の少し上（y座標から半径と少し引いた位置）に表示
+        fill(0);       
+        noStroke();    
+        textSize(16);  
         text("さとる", this.x, this.y - this.r - 15);
       }
     }
