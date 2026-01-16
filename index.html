@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>さとる落下ゲーム（スタート画面付き）</title>
+  <title>さとる落下ゲーム（デザイン統一版）</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/addons/p5.sound.min.js"></script>
   <style>
@@ -20,15 +20,17 @@
   let gameTime = 30; 
   let timeLeft;      
   
-  // ★状態管理用の変数を整理
-  let isGameStarted = false; // ゲームが始まっているか？
-  let isGameOver = false;    // ゲームが終わったか？
+  let isGameStarted = false; 
+  let isGameOver = false;    
   let isNewRecord = false; 
 
-  // 素材用変数
   let hitSound;
   let finishSound;
   let targetImg; 
+
+  // ★ボタンのサイズと位置をここで決めておきます（共通化）
+  let btnW = 240;
+  let btnH = 70;
 
   function preload() {
     soundFormats('mp3', 'ogg');
@@ -48,29 +50,22 @@
     
     if(hitSound) hitSound.setVolume(0.5);
     if(finishSound) finishSound.setVolume(0.5);
-
-    // resetGameはまだ呼ばない（スタートボタンを押した時に呼ぶ）
   }
 
   function draw() {
-    background(240); 
+    background(240); // ★全ての画面で共通の背景色（明るいグレー）
 
-    // ★画面の状態によって描画を切り替える
     if (!isGameStarted) {
-      // 1. まだ始まっていないなら「スタート画面」
       drawStartScreen();
     } else if (!isGameOver) {
-      // 2. 始まっていて、終わっていないなら「ゲームプレイ画面」
       playGame();
     } else {
-      // 3. 終わっているなら「結果画面」
       drawGameOver();
     }
   }
 
-  // --- ★新しく追加：スタート画面を描く関数 ---
+  // --- スタート画面 ---
   function drawStartScreen() {
-    // タイトル
     fill(0);
     textSize(48);
     text("さとる落下ゲーム", width / 2, height / 2 - 80);
@@ -78,24 +73,57 @@
     textSize(20);
     text("High Score: " + highScore, width / 2, height / 2 - 20);
 
-    // スタートボタン
-    let btnW = 240;
-    let btnH = 80;
+    // ★共通のボタン描画関数を使います
     let btnX = width / 2 - btnW / 2;
     let btnY = height / 2 + 50;
+    drawButton("GAME START", btnX, btnY, btnW, btnH);
+  }
 
-    // ボタンの影（立体感）
+  // --- ゲームオーバー画面 ---
+  function drawGameOver() {
+    // ★ここを変更：背景を暗くする rect(0,0,...) を削除しました。
+    // そのため、スタート画面と同じ背景色になります。
+
+    if (isNewRecord) {
+      fill(255, 200, 0); // 新記録はゴールドっぽい色
+      textSize(40);
+      text("✨ NEW RECORD! ✨", width / 2, height / 2 - 120);
+    } else {
+      fill(0); // 通常は黒文字
+      textSize(64);
+      text("FINISH", width / 2, height / 2 - 100);
+    }
+    
+    fill(0);
+    textSize(32);
+    text("Score: " + score, width / 2, height / 2 - 20);
+    
     fill(100);
-    rect(btnX + 5, btnY + 5, btnW, btnH, 20);
+    textSize(20);
+    text("Best: " + highScore, width / 2, height / 2 + 30);
+    
+    // ★共通のボタン描画関数を使います
+    let btnX = width / 2 - btnW / 2;
+    let btnY = height / 2 + 80;
+    drawButton("RETRY", btnX, btnY, btnW, btnH);
+  }
+
+  // --- ★新機能：ボタンを描く専用の関数 ---
+  // これを使うことで、すべてのボタンが同じデザインになります
+  function drawButton(label, x, y, w, h) {
+    // ボタンの影（少し右下にズラす）
+    fill(180); 
+    noStroke();
+    rect(x + 5, y + 5, w, h, 20); // 角丸
 
     // ボタン本体（青色）
-    fill(0, 100, 255);
-    rect(btnX, btnY, btnW, btnH, 20);
+    fill(0, 120, 255);
+    rect(x, y, w, h, 20);
 
-    // 文字
+    // ボタンの文字
     fill(255);
-    textSize(32);
-    text("GAME START", width / 2, btnY + btnH / 2);
+    textSize(28);
+    text(label, x + w / 2, y + h / 2);
   }
 
   function playGame() {
@@ -107,7 +135,6 @@
       gameOverProcess(); 
     }
 
-    // スコアなどの表示
     fill(0);
     textAlign(LEFT, TOP);
     textSize(32);
@@ -151,43 +178,6 @@
     }
   }
 
-  function drawGameOver() {
-    fill(0, 180); 
-    rect(0, 0, width, height);
-    textAlign(CENTER, CENTER);
-    
-    if (isNewRecord) {
-      fill(255, 255, 0); 
-      textSize(40);
-      text("✨ NEW RECORD! ✨", width / 2, height / 2 - 120);
-    } else {
-      fill(255);
-      textSize(64);
-      text("FINISH", width / 2, height / 2 - 100);
-    }
-    
-    fill(255);
-    textSize(32);
-    text("Score: " + score, width / 2, height / 2 - 20);
-    
-    fill(200);
-    textSize(20);
-    text("Best: " + highScore, width / 2, height / 2 + 30);
-    
-    // リトライボタン
-    let btnW = 200;
-    let btnH = 60;
-    let btnX = width / 2 - btnW / 2;
-    let btnY = height / 2 + 80;
-
-    fill(0, 200, 100);
-    rect(btnX, btnY, btnW, btnH, 20); 
-
-    fill(255);
-    textSize(28);
-    text("RETRY", width / 2, btnY + btnH / 2);
-  }
-
   function resetGame() {
     score = 0;
     timeLeft = gameTime;
@@ -197,40 +187,34 @@
     frameCount = 0; 
   }
 
-  // --- タッチ・クリック時の処理 ---
   function mousePressed() {
-    // どの画面でも、クリックされたら音を許可する（スマホ対策）
     userStartAudio();
 
-    if (!isGameStarted) {
-      // 1. スタート画面でのクリック判定
-      let btnW = 240;
-      let btnH = 80;
-      let btnX = width / 2 - btnW / 2;
-      let btnY = height / 2 + 50;
+    // ボタンの幅と高さを取得（上で定義した変数）
+    let w = btnW;
+    let h = btnH;
 
-      if (mouseX > btnX && mouseX < btnX + btnW &&
-          mouseY > btnY && mouseY < btnY + btnH) {
-        // スタートボタンが押された！
+    if (!isGameStarted) {
+      // --- スタート画面のボタン判定 ---
+      let x = width / 2 - w / 2;
+      let y = height / 2 + 50; // drawStartScreenの位置と合わせる
+
+      if (mouseX > x && mouseX < x + w && mouseY > y && mouseY < y + h) {
         isGameStarted = true;
-        resetGame(); // ゲーム開始
+        resetGame();
       }
 
     } else if (isGameOver) {
-      // 3. ゲームオーバー画面でのリトライ判定
-      let btnW = 200;
-      let btnH = 60;
-      let btnX = width / 2 - btnW / 2;
-      let btnY = height / 2 + 80;
+      // --- リトライボタンの判定 ---
+      let x = width / 2 - w / 2;
+      let y = height / 2 + 80; // drawGameOverの位置と合わせる
 
-      if (mouseX > btnX && mouseX < btnX + btnW &&
-          mouseY > btnY && mouseY < btnY + btnH) {
-        // リトライボタンが押された！
+      if (mouseX > x && mouseX < x + w && mouseY > y && mouseY < y + h) {
         resetGame();
       }
 
     } else {
-      // 2. ゲーム中のタッチ判定
+      // --- ゲーム中の判定 ---
       for (let k of targets) {
         k.checkHit(mouseX, mouseY);
       }
