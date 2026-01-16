@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>さとる落下ゲーム</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/addons/p5.sound.min.js"></script>
+  <style>
+    body { margin: 0; padding: 0; overflow: hidden; background: #f0f0f0; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+<script>
+  // 変数名もわかりやすくkawamurasからtargetsに変更します
+  let targets = []; 
+  let score = 0;
+  let highScore = 0; 
+  let spawnRate = 60; 
+  
+  let gameTime = 30; 
+  let timeLeft;      
+  let isGameOver = false; 
+  let isNewRecord = false; 
+
+  // 素材用変数
+  let hitSound;
+  let finishSound;
+  let targetImg; // 画像用の変数
+
+  // 素材をあらかじめ読み込む関数
+  function preload() {
+    soundFormats('mp3', 'ogg');
+    hitSound = loadSound('hit.mp3');
+    finishSound = loadSound('finish.mp3');
+    
+    // 画像を読み込みます（ファイル名はkawamura.pngのままとしています）
+    targetImg = loadImage('kawamura.png'); 
+  }
+
+  function setup() {
+    createCanvas(windowWidth, windowHeight);
+    textAlign(CENTER, CENTER);
+    
+    // ハイスコアの保存名も変更します
+    let savedScore = localStorage.getItem("satoruGameHighScore");
+    if (savedScore !== null) {
+      highScore = parseInt(savedScore); 
+    }
+    
+    if(hitSound) hitSound.setVolume(0.5);
+    if(finishSound) finishSound.setVolume(0.5);
+
+    resetGame(); 
+  }
+
+  function draw() {
+    background(240); 
+
+    if (!isGameOver) {
+      playGame();
+    } else {
+      drawGameOver();
+    }
+  }
+
+  function playGame() {
+    if (frameCount % 60 === 0 && timeLeft > 0) {
+      timeLeft--;
+    }
+    
+    if (timeLeft === 0) {
+      gameOverProcess(); 
+    }
+
+    fill(0);
+    textAlign(LEFT, TOP);
+    textSize(32);
+    text("Score: " + score, 20, 20);
+    
+    textSize(20);
+    fill(100);
+    text("High Score: " + highScore, 20, 100);
+
+    textSize(32);
+    fill(0);
+    if (timeLeft <= 5) fill(255, 0, 0); 
+    text("Time: " + timeLeft, 20, 60);
+    
+    if (frameCount % spawnRate === 0) {
+      targets.push(new Target());
+    }
+
+    for (let i = targets.length - 1; i >= 0; i--) {
+      let k = targets[i];
+      k.move();
+      k.display();
+
+      if (k.y > height + 50) {
+        targets.splice(i, 1);
+      }
+      if (k.isHit && k.life <= 0) {
+         targets.splice(i, 1);
+      }
+    }
+  }
+
+  function gameOverProcess() {
+    isGameOver = true;
+    
+    if (finishSound && finishSound.isLoaded()) {
+      finishSound.play();
+    }
+
+    if (score > highScore) {
+      highScore = score;
+      isNewRecord = true;
+      // 保存名を変更
+      localStorage.setItem("satoruGameHighScore", highScore);
+    }
+  }
+
+  function drawGameOver() {
+    fill(0, 180); 
+    rect(0, 0, width, height);
+
+    textAlign(CENTER, CENTER);
+    
+    if (isNewRecord) {
+      fill(255, 255, 0); 
+      textSize(40);
+      text("✨ NEW RECORD! ✨", width / 2, height / 2 - 120);
+    } else {
+      fill(255);
+      textSize(64);
+      text("FINISH", width / 2, height / 2 - 100);
+    }
+    
+    fill(255);
+    textSize(32);
+    text("Score: " + score, width / 2, height / 2 - 20);
+    
+    fill(200);
+    textSize(20);
+    text("Best: " + highScore, width / 2, height / 2 + 30);
+    
+    // リトライボタン
+    let btnW = 200;
+    let btnH = 60;
+    let btnX = width / 2 - btnW / 2;
+    let btnY = height / 2 + 80;
+
+    fill(0, 200, 100);
+    rect(btnX, btnY, btnW, btnH, 20); 
+
+    fill(255);
+    textSize(28);
+    text("RETRY", width / 2, btnY + btnH / 2);
+  }
+
+  function resetGame() {
+    score = 0;
+    timeLeft = gameTime;
+    targets = [];
+    isGameOver = false;
+    isNewRecord = false; 
+    frameCount = 0; 
+    userStartAudio();
+  }
+
+  function mousePressed() {
+    userStartAudio();
+
+    if (isGameOver) {
+      let btnW = 200;
+      let btnH = 60;
+      let btnX = width / 2 - btnW / 2;
+      let btnY = height / 2 + 80;
+
+      if (mouseX > btnX && mouseX < btnX + btnW &&
+          mouseY > btnY && mouseY < btnY + btnH) {
+        resetGame();
+      }
+    } else {
+      for (let k of targets) {
+        k.checkHit(mouseX, mouseY);
+      }
+    }
+  }
+
+  // --- クラス定義（名前をKawamuraからTargetに変更）---
+  class Target {
+    constructor() {
+      this.r = 40; // 半径
+      this.x = random(this.r, width - this.r);
+      this.y = -50;
+      this.speed = random(2, 5); 
+      this.isHit = false; 
+      this.life = 30; 
+    }
+
+    move() {
+      if (!this.isHit) {
+        this.y += this.speed;
+      } else {
+        this.y -= 1; 
+        this.life--;
+      }
+    }
+
+    display() {
+      textAlign(CENTER, CENTER);
+      if (this.isHit) {
+        textSize(this.r * 2);
+        text("❤️", this.x, this.y);
+      } else {
+        // 画像の表示
+        imageMode(CENTER);
+        image(targetImg, this.x, this.y, this.r * 2, this.r * 2);
+
+        // ★ここを変更しました：「さとる」の名前を表示
+        fill(0);       // 文字色を黒に
+        noStroke();    // 縁取りなし
+        textSize(16);  // 文字の大きさ
+        // 画像の少し上（y座標から半径と少し引いた位置）に表示
+        text("さとる", this.x, this.y - this.r - 15);
+      }
+    }
+
+    checkHit(mx, my) {
+      if (this.isHit) return;
+      let d = dist(mx, my, this.x, this.y);
+      if (d < this.r) {
+        this.isHit = true;
+        score += 100; 
+        
+        if (hitSound && hitSound.isLoaded()) {
+          hitSound.play();
+        }
+      }
+    }
+  }
+</script>
+</body>
+</html>
